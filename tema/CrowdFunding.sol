@@ -1,32 +1,27 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
-import "./SponsorFunding.sol"; // Modifică "./SponsorFunding.sol" conform structurii tale de fișiere
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "./EIP20Token.sol";
+import "./SponsorFunding.sol";
 
 contract CrowdFunding {
-    enum FundingState { Nefinantat, Prefinantat, Finantat }
-    FundingState public state;
-
-    address public tokenAddress;
     address public owner;
+    address public tokenAddress;
     uint256 public fundingGoal;
     uint256 public totalFunds;
     mapping(address => uint256) public contributions;
 
-    event ContributionMade(address indexed contributor, uint256 amount);
-    event ContributionWithdrawn(address indexed contributor, uint256 amount);
-    event FundingFinalized();
-    event TotalFundsTransferred(address indexed to, uint256 amount);
+    enum FundingState { Nefinantat, Prefinantat, Finantat }
+    FundingState public state;
 
-    constructor(address _tokenAddress, uint256 _fundingGoal) {
-        tokenAddress = _tokenAddress;
-        owner = msg.sender;
-        fundingGoal = _fundingGoal;
-        state = FundingState.Nefinantat;
-    }
+    event Deposit(address indexed contributor, uint256 amount);
+    event Withdrawal(address indexed contributor, uint256 amount);
+    event GoalReached(uint256 totalFunds);
+    event SponsorshipReceived(uint256 amount);
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not the owner");
+        require(msg.sender == owner, "Not authorized");
         _;
     }
 
@@ -35,49 +30,69 @@ contract CrowdFunding {
         _;
     }
 
-    // Contribuție către fonduri
-    function contribute(uint256 _amount) public inState(FundingState.Nefinantat) {
-        require(_amount > 0, "Amount must be greater than zero");
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount);
+    constructor(address _tokenAddress, uint256 _fundingGoal) {
+        owner = msg.sender;
+        tokenAddress = _tokenAddress;
+        fundingGoal = _fundingGoal;
+        state = FundingState.Nefinantat;
+    }
 
-        contributions[msg.sender] += _amount;
-        totalFunds += _amount;
+    function deposit(uint256 amount) public inState(FundingState.Nefinantat) {
+        EIP20Token token = EIP20Token(tokenAddress);
 
-        emit ContributionMade(msg.sender, _amount);
+        require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed");
+        contributions[msg.sender] += amount;
+        totalFunds += amount;
 
-        // Verificarea dacă suma țintă a fost atinsă
+        emit Deposit(msg.sender, amount);
+
         if (totalFunds >= fundingGoal) {
             state = FundingState.Prefinantat;
+            emit GoalReached(totalFunds);
         }
     }
 
-    // Retragerea fondurilor depuse
-    function withdrawContribution(uint256 _amount) public inState(FundingState.Nefinantat) {
-        require(contributions[msg.sender] >= _amount, "Insufficient balance");
+    function withdraw(uint256 amount) public inState(FundingState.Nefinantat) {
+        require(contributions[msg.sender] >= amount, "Insufficient balance");
 
-        contributions[msg.sender] -= _amount;
-        totalFunds -= _amount;
+        EIP20Token token = EIP20Token(tokenAddress);
+        contributions[msg.sender] -= amount;
+        totalFunds -= amount;
 
-        IERC20(tokenAddress).transfer(msg.sender, _amount);
-        emit ContributionWithdrawn(msg.sender, _amount);
+        require(token.transfer(msg.sender, amount), "Token transfer failed");
+
+        emit Withdrawal(msg.sender, amount);
     }
 
-    // Finalizare finanțare și inițiere sponsorizare
-    function finalizeFunding(address _sponsorFunding) public onlyOwner inState(FundingState.Prefinantat) {
-        SponsorFunding sponsor = SponsorFunding(_sponsorFunding);
+    function requestSponsorship(address sponsorContractAddress) public onlyOwner inState(FundingState.Prefinantat) {
+        SponsorFunding sponsor = SponsorFunding(sponsorContractAddress);
+        sponsor.provideSponsorship(address(this)); // Sponsor sends additional tokens if available
 
-        if (sponsor.sponsor(address(this))) {
-            // Sponsorizare reușită
+        EIP20Token token = EIP20Token(tokenAddress);
+        uint256 currentBalance = token.balanceOf(address(this));
+
+        if (currentBalance > totalFunds) {
             state = FundingState.Finantat;
-            emit FundingFinalized();
+            emit SponsorshipReceived(currentBalance - totalFunds);
         }
     }
 
-    // Transferarea fondurilor către contractul de distribuție
-    function transferFunds(address _distributeFunding) public onlyOwner inState(FundingState.Finantat) {
-        IERC20(tokenAddress).transfer(_distributeFunding, totalFunds);
-        emit TotalFundsTransferred(_distributeFunding, totalFunds);
+    function transferToDistributor(address distributorAddress) public onlyOwner inState(FundingState.Finantat) {
+        EIP20Token token = EIP20Token(tokenAddress);
+        uint256 currentBalance = token.balanceOf(address(this));
 
-        totalFunds = 0;
+        require(token.transfer(distributorAddress, currentBalance), "Token transfer failed");
+        state = FundingState.Nefinantat; // Reset the state
+    }
+
+    function getFundingState() public view returns (string memory) {
+        if (state == FundingState.Nefinantat) {
+            return "Nefinantat";
+        } else if (state == FundingState.Prefinantat) {
+            return "Prefinantat";
+        } else if (state == FundingState.Finantat) {
+            return "Finatat";
+        }
+        return "Unknown";
     }
 }

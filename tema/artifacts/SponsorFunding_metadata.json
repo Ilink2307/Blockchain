@@ -14,7 +14,7 @@
 					},
 					{
 						"internalType": "uint256",
-						"name": "_fundingGoal",
+						"name": "_initialSponsorshipAmount",
 						"type": "uint256"
 					}
 				],
@@ -25,9 +25,28 @@
 				"anonymous": false,
 				"inputs": [
 					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "oldAmount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "newAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "SponsorshipAmountUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
 						"indexed": true,
 						"internalType": "address",
-						"name": "contributor",
+						"name": "recipient",
 						"type": "address"
 					},
 					{
@@ -37,20 +56,7 @@
 						"type": "uint256"
 					}
 				],
-				"name": "Deposit",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "totalFunds",
-						"type": "uint256"
-					}
-				],
-				"name": "GoalReached",
+				"name": "SponsorshipProvided",
 				"type": "event"
 			},
 			{
@@ -61,87 +67,16 @@
 						"internalType": "uint256",
 						"name": "amount",
 						"type": "uint256"
-					}
-				],
-				"name": "SponsorshipReceived",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "contributor",
-						"type": "address"
 					},
 					{
 						"indexed": false,
 						"internalType": "uint256",
-						"name": "amount",
+						"name": "cost",
 						"type": "uint256"
 					}
 				],
-				"name": "Withdrawal",
+				"name": "TokensPurchased",
 				"type": "event"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"name": "contributions",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "deposit",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "fundingGoal",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "getFundingState",
-				"outputs": [
-					{
-						"internalType": "string",
-						"name": "",
-						"type": "string"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
 			},
 			{
 				"inputs": [],
@@ -160,23 +95,36 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "sponsorContractAddress",
+						"name": "recipient",
 						"type": "address"
 					}
 				],
-				"name": "requestSponsorship",
+				"name": "provideSponsorship",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "purchaseTokens",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
-				"name": "state",
+				"name": "sponsorshipAmount",
 				"outputs": [
 					{
-						"internalType": "enum CrowdFunding.FundingState",
+						"internalType": "uint256",
 						"name": "",
-						"type": "uint8"
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -196,40 +144,14 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
-				"name": "totalFunds",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "distributorAddress",
-						"type": "address"
-					}
-				],
-				"name": "transferToDistributor",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
 				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "amount",
+						"name": "newAmount",
 						"type": "uint256"
 					}
 				],
-				"name": "withdraw",
+				"name": "updateSponsorshipAmount",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -248,7 +170,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"tema/CrowdFunding.sol": "CrowdFunding"
+			"tema/SponsorFunding.sol": "SponsorFunding"
 		},
 		"evmVersion": "cancun",
 		"libraries": {},
@@ -262,14 +184,6 @@
 		"remappings": []
 	},
 	"sources": {
-		"tema/CrowdFunding.sol": {
-			"keccak256": "0x9fbb9f99538225b9488321d7192b2f604ddea973b79adc030d68199631348a63",
-			"license": "MIT",
-			"urls": [
-				"bzz-raw://b300be6e015264e896a511ff855165b27b56f20b0fa35592126a6a9f3a8f7c9a",
-				"dweb:/ipfs/QmSWWqP9vNYEoiwZVJAQXpQDnPTnckMAT1JDmGTm2KMarh"
-			]
-		},
 		"tema/EIP20Token.sol": {
 			"keccak256": "0x6016abea78b966ee6d2336afe3674b04a29e4e49dc09004f778798540661bedf",
 			"license": "MIT",
