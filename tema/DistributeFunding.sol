@@ -1,56 +1,75 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./EIP20Token.sol";
 
 contract DistributeFunding {
-    address public tokenAddress;
-    address public owner;
+    EIP20Token public token;
 
     struct Beneficiary {
-        address wallet;
-        uint256 percentage;
-        bool hasWithdrawn; // Marcare retragere
+        uint256 percentage; // Share in percentage (out of 100%)
+        bool hasWithdrawn;  // Indicates if the beneficiary has already withdrawn
     }
 
-    Beneficiary[] public beneficiaries;
-
-    event BeneficiaryAdded(address indexed wallet, uint256 percentage);
-    event FundsWithdrawn(address indexed wallet, uint256 amount);
-
-    constructor(address _tokenAddress) {
-        tokenAddress = _tokenAddress;
-        owner = msg.sender;
-    }
+    address public owner;
+    uint256 public totalDistributed;      // Total amount received for distribution
+    mapping(address => Beneficiary) public beneficiaries;
+    address[] public beneficiaryList;
+    uint256 public totalShares;           // Total allocated percentage (<= 100)
 
     modifier onlyOwner() {
-        require(msg.sender == owner, "Not the owner");
+        require(msg.sender == owner, "Caller is not the owner");
         _;
     }
 
-    function addBeneficiary(address _wallet, uint256 _percentage) public onlyOwner {
-        require(_wallet != address(0), "Invalid address");
-        require(_percentage > 0 && _percentage <= 100, "Invalid percentage");
-
-        beneficiaries.push(Beneficiary({wallet: _wallet, percentage: _percentage, hasWithdrawn: false}));
-        emit BeneficiaryAdded(_wallet, _percentage);
+    modifier hasFunds() {
+        require(totalDistributed > 0, "No funds available for distribution");
+        _;
     }
 
-    function withdrawFunds() public {
-        uint256 balance = IERC20(tokenAddress).balanceOf(address(this));
-        require(balance > 0, "No funds available");
+    constructor(address _token) {
+        token = EIP20Token(_token);
+        owner = msg.sender;
+    }
 
-        for (uint256 i = 0; i < beneficiaries.length; i++) {
-            if (beneficiaries[i].wallet == msg.sender && !beneficiaries[i].hasWithdrawn) {
-                uint256 amount = (balance * beneficiaries[i].percentage) / 100;
+    /// Add a new beneficiary or update the percentage of an existing one
+    function addBeneficiary(address _beneficiary, uint256 _percentage) external onlyOwner {
+        require(_beneficiary != address(0), "Invalid beneficiary address");
+        require(totalShares + _percentage <= 100, "Total shares exceed 100%");
 
-                IERC20(tokenAddress).transfer(beneficiaries[i].wallet, amount);
-                beneficiaries[i].hasWithdrawn = true;
-
-                emit FundsWithdrawn(beneficiaries[i].wallet, amount);
-                return;
-            }
+        if (beneficiaries[_beneficiary].percentage == 0) {
+            beneficiaryList.push(_beneficiary); // Add new beneficiary
         }
-        revert("You are not a beneficiary or have already withdrawn");
+        totalShares = totalShares - beneficiaries[_beneficiary].percentage + _percentage;
+        beneficiaries[_beneficiary].percentage = _percentage;
+    }
+
+    /// Deposit funds for distribution (from CrowdFunding contract)
+    function receiveFunds(uint256 _amount) external {
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        totalDistributed += _amount;
+    }
+
+    /// Allow each beneficiary to withdraw their proportional share
+    function withdraw() external hasFunds {
+        Beneficiary storage beneficiary = beneficiaries[msg.sender];
+        require(beneficiary.percentage > 0, "Not a beneficiary");
+        require(!beneficiary.hasWithdrawn, "Already withdrawn");
+
+        uint256 amount = (totalDistributed * beneficiary.percentage) / 100;
+        require(token.transfer(msg.sender, amount), "Token transfer failed");
+
+        beneficiary.hasWithdrawn = true;
+    }
+
+    /// View beneficiary's share amount
+    function calculateShare(address _beneficiary) public view returns (uint256) {
+        Beneficiary memory beneficiary = beneficiaries[_beneficiary];
+        return (totalDistributed * beneficiary.percentage) / 100;
+    }
+
+    /// View all beneficiaries
+    function getBeneficiaries() external view returns (address[] memory) {
+        return beneficiaryList;
     }
 }

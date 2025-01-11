@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-contract EIP20Token {
+contract   EIP20Token {
     uint256 public totalSupply;
     uint256 constant private MAX_UINT256 = 2**256 - 1;
 

@@ -9,7 +9,7 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "_tokenAddress",
+						"name": "_token",
 						"type": "address"
 					}
 				],
@@ -17,48 +17,10 @@
 				"type": "constructor"
 			},
 			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "wallet",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "percentage",
-						"type": "uint256"
-					}
-				],
-				"name": "BeneficiaryAdded",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "wallet",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "FundsWithdrawn",
-				"type": "event"
-			},
-			{
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "_wallet",
+						"name": "_beneficiary",
 						"type": "address"
 					},
 					{
@@ -75,18 +37,13 @@
 			{
 				"inputs": [
 					{
-						"internalType": "uint256",
+						"internalType": "address",
 						"name": "",
-						"type": "uint256"
+						"type": "address"
 					}
 				],
 				"name": "beneficiaries",
 				"outputs": [
-					{
-						"internalType": "address",
-						"name": "wallet",
-						"type": "address"
-					},
 					{
 						"internalType": "uint256",
 						"name": "percentage",
@@ -96,6 +53,57 @@
 						"internalType": "bool",
 						"name": "hasWithdrawn",
 						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "beneficiaryList",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_beneficiary",
+						"type": "address"
+					}
+				],
+				"name": "calculateShare",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getBeneficiaries",
+				"outputs": [
+					{
+						"internalType": "address[]",
+						"name": "",
+						"type": "address[]"
 					}
 				],
 				"stateMutability": "view",
@@ -115,11 +123,24 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_amount",
+						"type": "uint256"
+					}
+				],
+				"name": "receiveFunds",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
-				"name": "tokenAddress",
+				"name": "token",
 				"outputs": [
 					{
-						"internalType": "address",
+						"internalType": "contract EIP20Token",
 						"name": "",
 						"type": "address"
 					}
@@ -129,7 +150,33 @@
 			},
 			{
 				"inputs": [],
-				"name": "withdrawFunds",
+				"name": "totalDistributed",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalShares",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "withdraw",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -142,7 +189,23 @@
 		},
 		"userdoc": {
 			"kind": "user",
-			"methods": {},
+			"methods": {
+				"addBeneficiary(address,uint256)": {
+					"notice": "Add a new beneficiary or update the percentage of an existing one"
+				},
+				"calculateShare(address)": {
+					"notice": "View beneficiary's share amount"
+				},
+				"getBeneficiaries()": {
+					"notice": "View all beneficiaries"
+				},
+				"receiveFunds(uint256)": {
+					"notice": "Deposit funds for distribution (from CrowdFunding contract)"
+				},
+				"withdraw()": {
+					"notice": "Allow each beneficiary to withdraw their proportional share"
+				}
+			},
 			"version": 1
 		}
 	},
@@ -162,20 +225,20 @@
 		"remappings": []
 	},
 	"sources": {
-		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
-			"keccak256": "0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7",
+		"tema/DistributeFunding.sol": {
+			"keccak256": "0xf46116c9b79aacff10fd3e1e1c0b866a9b7e143b2ef4c5e67cdf864338488032",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db",
-				"dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9"
+				"bzz-raw://73066a5cbb197fbf6b3e74acb08dc30cc1f1ba3368635bb5d923877ee73bec77",
+				"dweb:/ipfs/QmfMS2RqaUoXmQMZ87q7KeK5VZoDEayrP8ZLXnLTjtupyt"
 			]
 		},
-		"tema/DistributeFunding.sol": {
-			"keccak256": "0x2730eae6e477fcbe7a0a8e9eccaec4fcf4d90636cc59ddcfd7f83d72e7d964d9",
+		"tema/EIP20Token.sol": {
+			"keccak256": "0x6016abea78b966ee6d2336afe3674b04a29e4e49dc09004f778798540661bedf",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a1427fc31f5283b9ec99a7c366d7a7b61e537dfa2bdb0d27b605a3b75752b351",
-				"dweb:/ipfs/QmaXW1AxDMNWHkshMQqkiN1HDHGCjFsw7eb2DVnjxuSWzA"
+				"bzz-raw://863d2160e88a34b135acc3d6cd1b498d969d66ee064c531bcf229e43093683bb",
+				"dweb:/ipfs/QmSR7r4L3UQtfxn3S4tzABJwJ5zT4SEg6faoU5z943D3x6"
 			]
 		}
 	},
